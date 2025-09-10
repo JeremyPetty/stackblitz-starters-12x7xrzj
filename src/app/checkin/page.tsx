@@ -1,4 +1,4 @@
-import CheckInForm from 'src/components/UI/CheckInForm.tsx';
+import CheckInForm from '@/components/UI/CheckInForm';
 import { Suspense } from 'react';
 
 function Content() {
@@ -13,10 +13,11 @@ function Content() {
   );
 }
 
-export default function CheckInPage() {
+export default function Page() {
   return (
     <Suspense>
       <Content />
     </Suspense>
   );
 }
+
