@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CheckInSchema } from '@/lib/validation';
-import { GAS_PUBLIC_URL } from '@/lib/config';
+import { CheckInSchema } from 'src/lib/validation';
+import { GAS_PUBLIC_URL } from 'src/lib/config';
 
 type Kind = 'new' | 'existing' | 'walkin';
 
@@ -218,3 +218,4 @@ export default function CheckInForm() {
     </div>
   );
 }
+
