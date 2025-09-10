@@ -14,10 +14,5 @@ function Content() {
 }
 
 export default function Page() {
-  return (
-    <Suspense>
-      <Content />
-    </Suspense>
-  );
+  return <Suspense><Content /></Suspense>;
 }
-
