@@ -14,9 +14,9 @@
     "jsx": "preserve",
     "incremental": true,
     "plugins": [{ "name": "next" }],
-    "baseUrl": ".",                         // ✅ add this
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]                      // ✅ point alias to src/
+      "@/*": ["src/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
