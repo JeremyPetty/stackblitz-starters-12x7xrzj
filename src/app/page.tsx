@@ -17,7 +17,7 @@ export default function Home() {
       <div className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center p-6 text-center">
         <div className="rounded-3xl bg-white/60 p-10 shadow-xl ring-1 ring-black/5 backdrop-blur">
           {/* Logo */}
-          <div className="mx-auto mb-6 h-28 w-28">
+          <div className="mx-auto mb-6 h-40 w-40 sm:h-48 sm:w-48 md:h-56 md:w-56">
             <Image
               src="/logo.png"
               alt="The Ark DPC"
