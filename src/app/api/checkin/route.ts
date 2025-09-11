@@ -1,20 +1,17 @@
-// src/app/api/checkin/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { CheckInSchema } from '@/lib/validation';
 
-// Avoid caching for this route
 export const dynamic = 'force-dynamic';
 
-// 👇 Use your real /exec URL here as a fallback.
-// If APPS_SCRIPT_URL exists in .env.local, that will be used instead.
-const GAS_FALLBACK = 'https://script.google.com/macros/s/AKfycbx6f7yMhvod9qkixvsCp9xOzVVxtBhJLHQIZhGHh7bSOqrN0dzrn-oMC_dB7MAT-e7YRg/exec';
+// Use env var on Vercel; you can keep a fallback if you like.
+const GAS_FALLBACK = process.env.APPS_SCRIPT_URL || '';
 
 export async function POST(req: NextRequest) {
   try {
     const GAS_URL = process.env.APPS_SCRIPT_URL || GAS_FALLBACK;
     if (!GAS_URL) {
       return NextResponse.json(
-        { ok: false, error: 'No Apps Script URL configured (APPS_SCRIPT_URL or GAS_FALLBACK).' },
+        { ok: false, error: 'Missing APPS_SCRIPT_URL' },
         { status: 500 }
       );
     }
@@ -27,23 +24,23 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const data = parsed.data;
+    const d = parsed.data;
 
-    // Honeypot: if filled, act like success without calling GAS
-    if ((data.company ?? '').trim().length > 0) {
+    // Honeypot: if bots fill this, act like success
+    if ((d.company ?? '').trim().length > 0) {
       return NextResponse.json({ ok: true });
     }
 
-    // Forward to your Apps Script Web App
     const resp = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        kind: data.kind,
-        name: data.name,
-        phone: data.phone,
-        apptTime: data.apptTime,
-        notes: data.notes ?? '',
+        kind: d.kind,
+        reason: d.reason,
+        name: d.name,
+        phone: d.phone,
+        otherReason: d.otherReason || '',
+        productName: d.productName || '',
       }),
     });
 
@@ -52,18 +49,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: 'GAS error', details: text }, { status: 502 });
     }
 
-    // GAS might return text or JSON
+    // GAS may return JSON or text
     try {
-      const json = JSON.parse(text);
-      if (json?.ok === false) {
-        return NextResponse.json({ ok: false, error: 'GAS returned failure', details: json }, { status: 502 });
+      const out = JSON.parse(text);
+      if (out?.ok === false) {
+        return NextResponse.json({ ok: false, error: 'GAS returned failure', details: out }, { status: 502 });
       }
-      return NextResponse.json({ ok: true, result: json });
+      return NextResponse.json({ ok: true, result: out });
     } catch {
       return NextResponse.json({ ok: true, result: text });
     }
   } catch (err: any) {
-    console.error('API /api/checkin error:', err);
     return NextResponse.json(
       { ok: false, error: 'Unexpected error', details: String(err?.message || err) },
       { status: 500 }
