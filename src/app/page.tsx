@@ -7,7 +7,7 @@ export default function Home() {
       {/* Background image */}
       <div className="absolute inset-0 -z-10">
         <Image
-          src="/bg-office.jpg"   // put your photo at /public/bg-office.jpg
+          src="/bg.png"   // put your photo at /public/bg-office.jpg
           alt=""
           fill
           priority
