@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CheckInSchema, type CheckInData, ReasonEnum } from '@/lib/validation';
+import { CheckInSchema, type CheckInData, ReasonEnum, type Reason } from '@/lib/validation';
 import { GAS_PUBLIC_URL } from '@/lib/config';
 
+
 type Kind = 'new' | 'existing' | 'walkin';
-type Reason = typeof ReasonEnum['_type'];
+
 
 const tabs: { key: Kind; label: string }[] = [
   { key: 'new', label: 'New Patients' },
@@ -268,3 +269,4 @@ export default function CheckInForm() {
     </div>
   );
 }
+
