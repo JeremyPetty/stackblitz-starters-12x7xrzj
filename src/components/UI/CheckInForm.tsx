@@ -5,8 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckInSchema, type CheckInData, ReasonEnum, type Reason } from '@/lib/validation';
 import { GAS_PUBLIC_URL } from '@/lib/config';
 
-type Kind = 'new' | 'existing' | 'walkin';
-
 // map machine value -> nice label
 const reasonLabel: Record<Reason, string> = {
   scheduled: 'Scheduled Appointment',
@@ -16,7 +14,7 @@ const reasonLabel: Record<Reason, string> = {
   other: 'Other',
 };
 
-/** Fire-and-forget POST to Google Apps Script using a hidden iframe + form (avoids CSP/CORB during dev). */
+// Hidden iframe fallback for StackBlitz dev; on Vercel your API route should work.
 function postToGasViaIframe(url: string, data: Record<string, string>) {
   return new Promise<void>((resolve) => {
     let sink = document.getElementById('gas-sink') as HTMLIFrameElement | null;
@@ -54,10 +52,10 @@ export default function CheckInForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // We no longer show "kind" toggles; default to walk-in (or change if you prefer)
-  const [kind] = useState<Kind>('walkin');
+  // We no longer show "kind" toggles; default to walk-in
+  const [kind] = useState<'new' | 'existing' | 'walkin'>('walkin');
 
-  // Get reason from the URL (?reason=scheduled|general|membership|pharma|other)
+  // reason comes from ?reason=
   const [reason, setReason] = useState<Reason>('scheduled');
 
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
@@ -66,11 +64,8 @@ export default function CheckInForm() {
 
   useEffect(() => {
     const r = (searchParams.get('reason') || '').toLowerCase();
-    if (ReasonEnum.options.includes(r as Reason)) {
-      setReason(r as Reason);
-    } else {
-      setReason('scheduled'); // fallback
-    }
+    if (ReasonEnum.options.includes(r as Reason)) setReason(r as Reason);
+    else setReason('scheduled');
   }, [searchParams]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -80,8 +75,8 @@ export default function CheckInForm() {
 
     const fd = new FormData(e.currentTarget);
     const payload: CheckInData = {
-      kind,                           // hidden default
-      reason,                         // locked from URL
+      kind,
+      reason,
       name: String(fd.get('name') || '').trim(),
       phone: String(fd.get('phone') || '').trim(),
       otherReason: String(fd.get('otherReason') || ''),
@@ -102,7 +97,7 @@ export default function CheckInForm() {
       return;
     }
 
-    // 1) Server route (best on Vercel)
+    // 1) Server route first (Vercel)
     let sent = false;
     try {
       const res = await fetch('/api/checkin', {
@@ -115,7 +110,7 @@ export default function CheckInForm() {
       sent = false;
     }
 
-    // 2) Dev fallback (StackBlitz): hidden iframe form post to GAS
+    // 2) Dev fallback
     if (!sent) {
       try {
         await postToGasViaIframe(GAS_PUBLIC_URL, {
@@ -143,7 +138,7 @@ export default function CheckInForm() {
 
   return (
     <div className="rounded-2xl bg-white p-6 md:p-8 shadow-sm ring-1 ring-black/5">
-      {/* Reason summary + change link */}
+      {/* Reason summary + change link (good for orientation) */}
       <div className="mb-6">
         <p className="text-sm md:text-base text-neutral-700">
           You’re checking in for: <span className="font-semibold">{reasonLabel[reason]}</span>
@@ -151,13 +146,24 @@ export default function CheckInForm() {
         <button
           type="button"
           onClick={() => router.push('/')}
-          className="mt-1 text-sm underline text-neutral-600 hover:text-neutral-800"
+          className="mt-1 text-sm underline text-neutral-700 hover:text-neutral-900"
         >
           Not this? Choose a different reason
         </button>
       </div>
 
-      <form ref={formRef} onSubmit={onSubmit} className="space-y-4" autoComplete="off">
+      <form
+        ref={formRef}
+        onSubmit={onSubmit}
+        className="space-y-4"
+        autoComplete="off"
+        aria-describedby="form-help"
+      >
+        {/* Hidden SR-only helper for context */}
+        <p id="form-help" className="sr-only">
+          All fields are required unless marked optional. Error messages are announced below each field.
+        </p>
+
         {/* Honeypot (hidden) */}
         <input type="text" name="company" className="hidden" tabIndex={-1} aria-hidden="true" />
 
@@ -169,24 +175,36 @@ export default function CheckInForm() {
             name="name"
             className="w-full rounded-xl border border-neutral-300 px-4 py-3 md:py-3.5 text-base
                        focus:outline-none focus:ring-2 focus:ring-black"
+            aria-invalid={Boolean(errors.name)}
+            aria-describedby={errors.name ? 'error-name' : undefined}
             required
           />
-          {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+          {errors.name && (
+            <p id="error-name" className="mt-1 text-sm text-red-600" role="alert">
+              {errors.name}
+            </p>
+          )}
         </div>
 
         {/* Phone */}
         <div>
           <label className="mb-1 block text-sm font-medium" htmlFor="phone">Phone Number</label>
-        <input
+          <input
             id="phone"
             name="phone"
             inputMode="tel"
             placeholder="(555) 123-4567"
             className="w-full rounded-xl border border-neutral-300 px-4 py-3 md:py-3.5 text-base
                        focus:outline-none focus:ring-2 focus:ring-black"
+            aria-invalid={Boolean(errors.phone)}
+            aria-describedby={errors.phone ? 'error-phone' : undefined}
             required
           />
-          {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+          {errors.phone && (
+            <p id="error-phone" className="mt-1 text-sm text-red-600" role="alert">
+              {errors.phone}
+            </p>
+          )}
         </div>
 
         {/* Conditional: Other (fill in) */}
@@ -200,9 +218,15 @@ export default function CheckInForm() {
               name="otherReason"
               className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-base
                          focus:outline-none focus:ring-2 focus:ring-black"
+              aria-invalid={Boolean(errors.otherReason)}
+              aria-describedby={errors.otherReason ? 'error-otherReason' : undefined}
               placeholder="Tell us briefly why you’re here"
             />
-            {errors.otherReason && <p className="mt-1 text-sm text-red-600">{errors.otherReason}</p>}
+            {errors.otherReason && (
+              <p id="error-otherReason" className="mt-1 text-sm text-red-600" role="alert">
+                {errors.otherReason}
+              </p>
+            )}
           </div>
         )}
 
@@ -217,9 +241,15 @@ export default function CheckInForm() {
               name="productName"
               className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-base
                          focus:outline-none focus:ring-2 focus:ring-black"
+              aria-invalid={Boolean(errors.productName)}
+              aria-describedby={errors.productName ? 'error-productName' : undefined}
               placeholder="e.g., Amoxicillin 500mg"
             />
-            {errors.productName && <p className="mt-1 text-sm text-red-600">{errors.productName}</p>}
+            {errors.productName && (
+              <p id="error-productName" className="mt-1 text-sm text-red-600" role="alert">
+                {errors.productName}
+              </p>
+            )}
           </div>
         )}
 
@@ -234,13 +264,14 @@ export default function CheckInForm() {
             {status === 'submitting' ? 'Submitting…' : 'Submit'}
           </button>
 
+          {/* Live regions for screen readers */}
           {status === 'success' && (
-            <p className="mt-3 text-center text-sm text-green-700">
+            <p className="mt-3 text-center text-sm text-green-700" role="status" aria-live="polite">
               Thanks! You’re checked in.
             </p>
           )}
           {status === 'error' && (
-            <p className="mt-3 text-center text-sm text-red-700">
+            <p className="mt-3 text-center text-sm text-red-700" role="status" aria-live="polite">
               Something went wrong. Please try again or tell the front desk.
             </p>
           )}
