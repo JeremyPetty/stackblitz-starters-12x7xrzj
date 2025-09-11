@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CheckInSchema } from 'src/lib/validation';
-import { GAS_PUBLIC_URL } from 'src/lib/config';
+import { CheckInSchema, type CheckInData } from '@/lib/validation';
+import { GAS_PUBLIC_URL } from '@/lib/config';
 
 type Kind = 'new' | 'existing' | 'walkin';
 
@@ -67,7 +67,7 @@ export default function CheckInForm() {
     setErrors({});
 
     const fd = new FormData(e.currentTarget);
-    const payload = {
+    const payload: CheckInData = {
       kind,
       name: String(fd.get('name') || '').trim(),
       phone: String(fd.get('phone') || '').trim(),
@@ -79,8 +79,14 @@ export default function CheckInForm() {
     const parsed = CheckInSchema.safeParse(payload);
     if (!parsed.success) {
       const formatted: Record<string, string> = {};
-      const f = parsed.error.flatten().fieldErrors;
-      for (const k in f) if (f[k]?.[0]) formatted[k] = f[k]![0] as string;
+      // ✅ Type the fieldErrors map before iterating to satisfy TS
+      const fieldErrors = parsed.error.flatten()
+        .fieldErrors as Partial<Record<keyof CheckInData, string[]>>;
+
+      for (const [key, msgs] of Object.entries(fieldErrors)) {
+        if (msgs && msgs[0]) formatted[key] = msgs[0];
+      }
+
       setErrors(formatted);
       setStatus('idle');
       return;
@@ -109,7 +115,7 @@ export default function CheckInForm() {
           apptTime: parsed.data.apptTime,
           notes: parsed.data.notes || '',
         });
-        sent = true; // we treat as success; GAS handles it server-side
+        sent = true;
       } catch {
         sent = false;
       }
@@ -218,4 +224,3 @@ export default function CheckInForm() {
     </div>
   );
 }
-
