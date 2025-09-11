@@ -4,12 +4,21 @@ import Image from 'next/image';
 export default function Home() {
   return (
     <main className="relative isolate min-h-[100svh] overflow-hidden">
-      {/* Background (keep as-is if you already set an image) */}
+      {/* Background image */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-b from-neutral-100 to-neutral-50" />
-        <div className="absolute inset-0 opacity-5 [background:radial-gradient(40rem_40rem_at_120%_-10%,black,transparent)]" />
+        <Image
+          src="/bg.png"     // ← put your file in /public/bg-office.jpg
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+        {/* Subtle dark overlay for contrast */}
+        <div className="absolute inset-0 bg-black/25" />
       </div>
 
+      {/* Center card */}
       <div className="mx-auto flex min-h-[100svh] max-w-4xl flex-col items-center justify-center p-6 md:p-10 text-center">
         <div className="rounded-3xl bg-white/60 md:bg-white/70 p-8 md:p-12 shadow-xl ring-1 ring-black/5 backdrop-blur-md md:backdrop-blur-lg">
           {/* Logo */}
@@ -24,24 +33,39 @@ export default function Home() {
             />
           </div>
 
+          {/* Heading */}
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
             The Ark Direct Primary Care
           </h1>
-          <p className="mt-2 text-neutral-600">Welcome! Choose how you’d like to check in.</p>
+          <p className="mt-2 text-neutral-50 md:text-neutral-100">
+            Welcome! Choose how you’d like to check in.
+          </p>
 
+          {/* Buttons */}
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Link href="/checkin?kind=new" className="rounded-xl bg-black px-6 py-4 md:py-5 text-base font-semibold text-white shadow-sm transition hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-black">
+            <Link
+              href="/checkin?kind=new"
+              className="rounded-xl bg-black/90 px-6 py-4 md:py-5 text-base font-semibold text-white shadow-sm transition hover:bg-black focus:outline-none focus:ring-2 focus:ring-white/60"
+            >
               New Patients
             </Link>
-            <Link href="/checkin?kind=existing" className="rounded-xl bg-black px-6 py-4 md:py-5 text-base font-semibold text-white shadow-sm transition hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-black">
+            <Link
+              href="/checkin?kind=existing"
+              className="rounded-xl bg-black/90 px-6 py-4 md:py-5 text-base font-semibold text-white shadow-sm transition hover:bg-black focus:outline-none focus:ring-2 focus:ring-white/60"
+            >
               Patients
             </Link>
-            <Link href="/checkin?kind=walkin" className="rounded-xl bg-black px-6 py-4 md:py-5 text-base font-semibold text-white shadow-sm transition hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-black">
+            <Link
+              href="/checkin?kind=walkin"
+              className="rounded-xl bg-black/90 px-6 py-4 md:py-5 text-base font-semibold text-white shadow-sm transition hover:bg-black focus:outline-none focus:ring-2 focus:ring-white/60"
+            >
               Walk-Ins
             </Link>
           </div>
 
-          <p className="mt-6 text-xs text-neutral-500">Est. 2025 • Privacy-first check-in</p>
+          <p className="mt-6 text-xs text-neutral-100/90">
+            Est. 2025 • Privacy-first check-in
+          </p>
         </div>
       </div>
     </main>
