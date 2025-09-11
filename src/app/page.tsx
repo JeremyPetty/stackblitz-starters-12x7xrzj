@@ -21,8 +21,8 @@ export default function Home() {
             <Image
               src="/logo.png"
               alt="The Ark DPC"
-              width={256}
-              height={256}
+              width={512}
+              height={512}
               className="h-full w-full object-contain"
               priority
               unoptimized
