@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckInSchema, type CheckInData } from '@/lib/validation';
 import { GAS_PUBLIC_URL } from '@/lib/config';
 
@@ -43,12 +43,13 @@ function postToGasViaIframe(url: string, data: Record<string, string>) {
     document.body.appendChild(form);
     form.submit();
     document.body.removeChild(form);
-    resolve();
+    resolve(); // fire-and-forget; GAS processes server-side
   });
 }
 
 export default function CheckInForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [kind, setKind] = useState<Kind>('new');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
@@ -79,8 +80,8 @@ export default function CheckInForm() {
     const parsed = CheckInSchema.safeParse(payload);
     if (!parsed.success) {
       const formatted: Record<string, string> = {};
-      const fieldErrors = parsed.error
-        .flatten().fieldErrors as Partial<Record<keyof CheckInData, string[]>>;
+      const fieldErrors = parsed.error.flatten()
+        .fieldErrors as Partial<Record<keyof CheckInData, string[]>>;
       for (const [key, msgs] of Object.entries(fieldErrors)) {
         if (msgs && msgs[0]) formatted[key] = msgs[0];
       }
@@ -119,8 +120,11 @@ export default function CheckInForm() {
     }
 
     if (sent) {
-      setStatus('success');
+      // Clear form, show quick success, then redirect home
       formRef.current?.reset();
+      setStatus('success');
+      // short delay so tap feels acknowledged; tweak/skip if you want instant redirect
+      setTimeout(() => router.push('/');
     } else {
       setStatus('error');
     }
@@ -214,7 +218,7 @@ export default function CheckInForm() {
 
           {status === 'success' && (
             <p className="mt-3 text-center text-sm text-green-700">
-              Thanks! You’re checked in. We’ll be right with you.
+              Thanks! You’re checked in.
             </p>
           )}
           {status === 'error' && (
