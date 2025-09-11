@@ -79,14 +79,11 @@ export default function CheckInForm() {
     const parsed = CheckInSchema.safeParse(payload);
     if (!parsed.success) {
       const formatted: Record<string, string> = {};
-      // ✅ Type the fieldErrors map before iterating to satisfy TS
-      const fieldErrors = parsed.error.flatten()
-        .fieldErrors as Partial<Record<keyof CheckInData, string[]>>;
-
+      const fieldErrors = parsed.error
+        .flatten().fieldErrors as Partial<Record<keyof CheckInData, string[]>>;
       for (const [key, msgs] of Object.entries(fieldErrors)) {
         if (msgs && msgs[0]) formatted[key] = msgs[0];
       }
-
       setErrors(formatted);
       setStatus('idle');
       return;
@@ -130,15 +127,16 @@ export default function CheckInForm() {
   }
 
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-black/5">
-      <div className="mb-6 flex gap-2">
+    <div className="rounded-2xl bg-white p-6 md:p-8 shadow-sm ring-1 ring-black/5">
+      {/* Larger, tappable tab buttons on iPad */}
+      <div className="mb-6 flex flex-wrap gap-2 md:gap-3">
         {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setKind(t.key)}
             className={
-              'rounded-xl px-4 py-2 text-sm font-medium ' +
+              'rounded-xl px-4 py-2.5 md:px-5 md:py-3 text-sm md:text-base font-medium ' +
               (kind === t.key
                 ? 'bg-black text-white'
                 : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200')
@@ -159,7 +157,8 @@ export default function CheckInForm() {
           <input
             id="name"
             name="name"
-            className="w-full rounded-xl border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+            className="w-full rounded-xl border border-neutral-300 px-4 py-3 md:py-3.5 text-base
+                       focus:outline-none focus:ring-2 focus:ring-black"
             required
           />
           {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
@@ -172,7 +171,8 @@ export default function CheckInForm() {
             name="phone"
             inputMode="tel"
             placeholder="(555) 123-4567"
-            className="w-full rounded-xl border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+            className="w-full rounded-xl border border-neutral-300 px-4 py-3 md:py-3.5 text-base
+                       focus:outline-none focus:ring-2 focus:ring-black"
             required
           />
           {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
@@ -184,7 +184,8 @@ export default function CheckInForm() {
             id="apptTime"
             type="datetime-local"
             name="apptTime"
-            className="w-full rounded-xl border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+            className="w-full rounded-xl border border-neutral-300 px-4 py-3 md:py-3.5 text-base
+                       focus:outline-none focus:ring-2 focus:ring-black"
             required
           />
           {errors.apptTime && <p className="mt-1 text-sm text-red-600">{errors.apptTime}</p>}
@@ -196,14 +197,16 @@ export default function CheckInForm() {
             id="notes"
             name="notes"
             rows={3}
-            className="w-full resize-none rounded-xl border border-neutral-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+            className="w-full resize-none rounded-xl border border-neutral-300 px-4 py-3 text-base
+                       focus:outline-none focus:ring-2 focus:ring-black"
           />
         </div>
 
         <div className="pt-2">
           <button
             type="submit"
-            className="w-full rounded-xl bg-black px-4 py-2 font-semibold text-white hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
+            className="w-full rounded-xl bg-black px-5 py-3.5 md:py-4 text-base font-semibold text-white
+                       hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
             disabled={status === 'submitting'}
           >
             {status === 'submitting' ? 'Submitting…' : 'Submit'}
