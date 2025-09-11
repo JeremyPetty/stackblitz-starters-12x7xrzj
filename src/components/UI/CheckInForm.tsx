@@ -5,15 +5,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckInSchema, type CheckInData, ReasonEnum, type Reason } from '@/lib/validation';
 import { GAS_PUBLIC_URL } from '@/lib/config';
 
-
 type Kind = 'new' | 'existing' | 'walkin';
 
-
-const tabs: { key: Kind; label: string }[] = [
-  { key: 'new', label: 'New Patients' },
-  { key: 'existing', label: 'Patients' },
-  { key: 'walkin', label: 'Walk-Ins' },
-];
+// map machine value -> nice label
+const reasonLabel: Record<Reason, string> = {
+  scheduled: 'Scheduled Appointment',
+  general: 'General Question',
+  membership: 'Question on Membership',
+  pharma: 'Pharmaceutical Representative',
+  other: 'Other',
+};
 
 /** Fire-and-forget POST to Google Apps Script using a hidden iframe + form (avoids CSP/CORB during dev). */
 function postToGasViaIframe(url: string, data: Record<string, string>) {
@@ -53,16 +54,23 @@ export default function CheckInForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [kind, setKind] = useState<Kind>('new');
+  // We no longer show "kind" toggles; default to walk-in (or change if you prefer)
+  const [kind] = useState<Kind>('walkin');
+
+  // Get reason from the URL (?reason=scheduled|general|membership|pharma|other)
   const [reason, setReason] = useState<Reason>('scheduled');
+
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Preselect tab from ?kind=
   useEffect(() => {
-    const k = (searchParams.get('kind') || '').toLowerCase();
-    if (k === 'existing' || k === 'walkin' || k === 'new') setKind(k as Kind);
+    const r = (searchParams.get('reason') || '').toLowerCase();
+    if (ReasonEnum.options.includes(r as Reason)) {
+      setReason(r as Reason);
+    } else {
+      setReason('scheduled'); // fallback
+    }
   }, [searchParams]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -72,8 +80,8 @@ export default function CheckInForm() {
 
     const fd = new FormData(e.currentTarget);
     const payload: CheckInData = {
-      kind,
-      reason,
+      kind,                           // hidden default
+      reason,                         // locked from URL
       name: String(fd.get('name') || '').trim(),
       phone: String(fd.get('phone') || '').trim(),
       otherReason: String(fd.get('otherReason') || ''),
@@ -84,8 +92,8 @@ export default function CheckInForm() {
     const parsed = CheckInSchema.safeParse(payload);
     if (!parsed.success) {
       const formatted: Record<string, string> = {};
-      const fieldErrors = parsed.error
-        .flatten().fieldErrors as Partial<Record<keyof CheckInData, string[]>>;
+      const fieldErrors = parsed.error.flatten()
+        .fieldErrors as Partial<Record<keyof CheckInData, string[]>>;
       for (const [key, msgs] of Object.entries(fieldErrors)) {
         if (msgs && msgs[0]) formatted[key] = msgs[0];
       }
@@ -94,7 +102,7 @@ export default function CheckInForm() {
       return;
     }
 
-    // 1) Try server route first (best for Vercel production)
+    // 1) Server route (best on Vercel)
     let sent = false;
     try {
       const res = await fetch('/api/checkin', {
@@ -107,7 +115,7 @@ export default function CheckInForm() {
       sent = false;
     }
 
-    // 2) Fallback (useful during StackBlitz dev): hidden iframe form POST to Apps Script
+    // 2) Dev fallback (StackBlitz): hidden iframe form post to GAS
     if (!sent) {
       try {
         await postToGasViaIframe(GAS_PUBLIC_URL, {
@@ -127,7 +135,7 @@ export default function CheckInForm() {
     if (sent) {
       formRef.current?.reset();
       setStatus('success');
-      setTimeout(() => router.push('/'), 600); // quick success then return home
+      setTimeout(() => router.push('/'), 600);
     } else {
       setStatus('error');
     }
@@ -135,24 +143,18 @@ export default function CheckInForm() {
 
   return (
     <div className="rounded-2xl bg-white p-6 md:p-8 shadow-sm ring-1 ring-black/5">
-      {/* Larger, tappable tab buttons (iPad) */}
-      <div className="mb-6 flex flex-wrap gap-2 md:gap-3">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setKind(t.key)}
-            className={
-              'rounded-xl px-4 py-2.5 md:px-5 md:py-3 text-sm md:text-base font-medium ' +
-              (kind === t.key
-                ? 'bg-black text-white'
-                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200')
-            }
-            aria-pressed={kind === t.key}
-          >
-            {t.label}
-          </button>
-        ))}
+      {/* Reason summary + change link */}
+      <div className="mb-6">
+        <p className="text-sm md:text-base text-neutral-700">
+          You’re checking in for: <span className="font-semibold">{reasonLabel[reason]}</span>
+        </p>
+        <button
+          type="button"
+          onClick={() => router.push('/')}
+          className="mt-1 text-sm underline text-neutral-600 hover:text-neutral-800"
+        >
+          Not this? Choose a different reason
+        </button>
       </div>
 
       <form ref={formRef} onSubmit={onSubmit} className="space-y-4" autoComplete="off">
@@ -172,26 +174,19 @@ export default function CheckInForm() {
           {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
         </div>
 
-        {/* Reason select */}
+        {/* Phone */}
         <div>
-          <label className="mb-1 block text-sm font-medium" htmlFor="reason">
-            Please Select What You Are Here For
-          </label>
-          <select
-            id="reason"
-            name="reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value as Reason)}
-            className="w-full rounded-xl border border-neutral-300 px-4 py-3 md:py-3.5 text-base bg-white
+          <label className="mb-1 block text-sm font-medium" htmlFor="phone">Phone Number</label>
+        <input
+            id="phone"
+            name="phone"
+            inputMode="tel"
+            placeholder="(555) 123-4567"
+            className="w-full rounded-xl border border-neutral-300 px-4 py-3 md:py-3.5 text-base
                        focus:outline-none focus:ring-2 focus:ring-black"
-          >
-            <option value="scheduled">Scheduled Appointment</option>
-            <option value="general">General Question</option>
-            <option value="membership">Question on Membership</option>
-            <option value="pharma">Pharmaceutical Representative</option>
-            <option value="other">Other</option>
-          </select>
-          {errors.reason && <p className="mt-1 text-sm text-red-600">{errors.reason}</p>}
+            required
+          />
+          {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
         </div>
 
         {/* Conditional: Other (fill in) */}
@@ -210,21 +205,6 @@ export default function CheckInForm() {
             {errors.otherReason && <p className="mt-1 text-sm text-red-600">{errors.otherReason}</p>}
           </div>
         )}
-
-        {/* Phone */}
-        <div>
-          <label className="mb-1 block text-sm font-medium" htmlFor="phone">Phone Number</label>
-          <input
-            id="phone"
-            name="phone"
-            inputMode="tel"
-            placeholder="(555) 123-4567"
-            className="w-full rounded-xl border border-neutral-300 px-4 py-3 md:py-3.5 text-base
-                       focus:outline-none focus:ring-2 focus:ring-black"
-            required
-          />
-          {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
-        </div>
 
         {/* Conditional: Pharma product name */}
         {reason === 'pharma' && (
@@ -269,4 +249,3 @@ export default function CheckInForm() {
     </div>
   );
 }
-
