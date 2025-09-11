@@ -124,7 +124,7 @@ export default function CheckInForm() {
       formRef.current?.reset();
       setStatus('success');
       // short delay so tap feels acknowledged; tweak/skip if you want instant redirect
-      setTimeout(() => router.push('/');
+      setTimeout(() => router.push('/')
     } else {
       setStatus('error');
     }
@@ -231,3 +231,4 @@ export default function CheckInForm() {
     </div>
   );
 }
+
